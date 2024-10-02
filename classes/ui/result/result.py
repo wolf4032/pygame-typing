@@ -1,10 +1,10 @@
 import pygame
 from pygame import Rect
+from pygame.event import Event
 
 from classes.ui.result.table.table import Table
 from constants import WHITE
 from classes.ui.result.info import Info
-from utils.utils import Utils
 
 
 class Result(pygame.sprite.Sprite):
@@ -78,26 +78,30 @@ class Result(pygame.sprite.Sprite):
         self._base_image.blit(info.image, info.rect)
     
     @staticmethod
-    def accept_input() -> None:
+    def accept_input(events: list[Event]) -> bool:
         """
         入力受付
 
+        Parameters
+        ----------
+        events : list[Event]
+            イベントリスト
+
         Returns
         -------
-        None
-            [R]を入力されると、return Noneでメソッドを終了する
+        bool
+            [R]を入力されると、再戦闘のためのTrueを返し、入力がなければFalseを返す
         """
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    Utils.game_quit()
+        restart = False
 
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        Utils.game_quit()
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    restart = True
 
-                    elif event.key == pygame.K_r:
-                        return None
+                    break
+
+        return restart
                     
     def apply_difficulty_settings(self) -> None:
         """

@@ -22,8 +22,11 @@ class Enemies:
 
     Attributes
     ----------
-    _add_frames: int
+    _add_seconds : int | float
+        敵を追加する頻度の秒数
 
+    _add_frames : int
+        敵を追加する頻度のフレーム数
     _hira_tango_selecter : HiraTangoSelecter
         ひらがなの単語選択機
     _enemy_maker : EnemyMaker
@@ -49,9 +52,9 @@ class Enemies:
         誤った入力数
     """
 
-    _add_frames = 120
+    _add_seconds: int | float = 2
 
-    def __init__(self, battle_area_rect: Rect):
+    def __init__(self, battle_area_rect: Rect, fps: int):
         """
         コンストラクタ
 
@@ -59,9 +62,13 @@ class Enemies:
         ----------
         battle_area_rect : Rect
             描画領域レクト
+        fps : int
+            FPS
         """
+        self._add_frames = int(fps * self._add_seconds)
+
         self._hira_tango_selecter = HiraTangoSelecter()
-        self._enemy_maker = EnemyMaker(battle_area_rect)
+        self._enemy_maker = EnemyMaker(battle_area_rect, fps)
 
         self._waiting_meteors = OverlappingReverse(battle_area_rect)
         self._waiting_input_boxs = KeepWithinReverse(battle_area_rect)
@@ -481,6 +488,8 @@ class EnemyMaker:
 
     Attributes
     ----------
+    _fps : int
+        FPS
     _hira_tango_graph_dic : dict[str, DiGraph]
         キーがひらがなの単語、バリューがキーのローマ字入力パターンのグラフである辞書
     _meteor_args_provider : MeteorArgsProvider
@@ -489,7 +498,7 @@ class EnemyMaker:
         入力ボックス専用引数提供機
     """
     
-    def __init__(self, exist_rect: Rect):
+    def __init__(self, exist_rect: Rect, fps: int):
         """
         コンストラクタ
 
@@ -497,12 +506,16 @@ class EnemyMaker:
         ----------
         exist_rect : Rect
             描画領域レクト
+        fps : int
+            FPS
         """
+        self._fps = fps
+
         tango_dic, graph_dic = EnemyMaker._build_hira_tango_dics()
 
         self._hira_tango_graph_dic = graph_dic
 
-        self._meteor_args_provider = MeteorArgsProvider(exist_rect)
+        self._meteor_args_provider = MeteorArgsProvider(exist_rect, fps)
         self._input_box_args_provider = InputBoxArgsProvider(
             exist_rect.h, tango_dic
         )
@@ -591,6 +604,7 @@ class EnemyMaker:
         enemy = Enemy(
             first_hira,
             graph,
+            self._fps,
             meteor_args,
             input_box_args,
             earth_center,

@@ -30,16 +30,39 @@ class Enemy:
             self,
             first_hira: str,
             graph: nx.DiGraph,
+            fps: int,
             meteor_args: MeteorArgs,
             input_box_args: InputBoxArgs,
             earth_center: Vector2,
-            meteor_pop_left_right_idx
+            meteor_pop_left_right_idx: tuple[int, int]
     ):
+        """
+        コンストラクタ
+
+        Parameters
+        ----------
+        first_hira : str
+            単語の先頭のひらがな１文字
+        graph : nx.DiGraph
+            単語のローマ字入力の全パターンを網羅した有向グラフ
+            開始ノードと終了ノード以外は、ノードに対応したローマ字入力のタプルと、
+            そのノードのひらがなの終了位置が、単語のどこであるかを示す整数を持つ
+        fps : int
+            FPS
+        meteor_args : MeteorArgs
+            隕石専用引数
+        input_box_args : InputBoxArgs
+            入力ボックス専用引数
+        earth_center : Vector2
+            地球の中心座標
+        meteor_pop_left_right_idx : tuple[int, int]
+            隕石湧き領域の左上の座標
+        """
         self._first_hira = first_hira
 
         self._key_processor = KeyProcessor(graph)
 
-        self._meteor = Meteor(meteor_args)
+        self._meteor = Meteor(meteor_args, fps)
         assumed_keys = self._key_processor.assumed_keys
         self._input_box = InputBox(
             input_box_args,

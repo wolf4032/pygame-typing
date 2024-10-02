@@ -1,12 +1,11 @@
 from typing import Any
 from abc import ABC, abstractmethod
 import sys
+import asyncio
 
 import pygame
 from pygame import Rect
 from pygame.sprite import Sprite, DirtySprite, AbstractGroup
-
-from constants import FPS
 
 
 class Game(ABC):
@@ -96,6 +95,36 @@ class Utils:
         return size
     
     @staticmethod
+    async def mesure_fps() -> int:
+        """
+        FPSの計測
+
+        clock.get_fps()の結果が０の場合は、実行環境がデスクトップであると仮定し、
+        60FPSになるようにする
+
+        Returns
+        -------
+        int
+            FPSの計測結果
+        """
+        clock = pygame.time.Clock()
+
+        for _ in range(11):
+            clock.tick()
+
+            await asyncio.sleep(0)
+
+        fps = clock.get_fps()
+
+        if fps == 0:
+            fps = 60
+        
+        else:
+            fps = round(fps / 10) * 10
+
+        return fps
+    
+    @staticmethod
     def build_new_base_surface_area(
         rect: Rect, new_base_rect: Rect
     ) -> tuple[int, int, int, int]:
@@ -175,8 +204,8 @@ class DamagedSprite(pygame.sprite.DirtySprite):
 
     Attributes
     ----------
-    _damage_expression_frames : int
-        ダメージ描写継続フレーム数
+    _damage_expression_seconds : int | float
+        ダメージ描写継続秒数
 
     _damaged_count : int
         ダメージ描写経過フレーム数
@@ -190,9 +219,9 @@ class DamagedSprite(pygame.sprite.DirtySprite):
         ダーティーフラグ
     """
 
-    _damage_expression_frames = int(FPS * 0.05)
+    _damage_expression_seconds: int | float = 0.1
 
-    def __init__(self, group: AbstractGroup):
+    def __init__(self, group: AbstractGroup, fps: int):
         """
         コンストラクタ
 
@@ -200,8 +229,14 @@ class DamagedSprite(pygame.sprite.DirtySprite):
         ----------
         group : AbstractGroup
             所属グループ
+        fps : int
+            FPS
         """
         super().__init__(group)
+
+        self._damage_expression_frames = int(
+            fps * self._damage_expression_seconds
+        )
 
         self._damaged_count: int = None
         self.image: pygame.Surface = None

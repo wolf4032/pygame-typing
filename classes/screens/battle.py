@@ -1,13 +1,13 @@
 import pygame
 from pygame import Surface, Rect
+from pygame.event import Event
 
-from utils.utils import Utils
 from classes.characters.enemy.enemies import Enemies
 from classes.characters.earth import EarthGroup
 from classes.ui.status_bar.status_bar import StatusBar
-from classes.ui.info_bar import InfoBar
-from constants import FPS, BLACK
+from constants import BLACK
 from classes.ui.result.result import Result
+
 
 class Battle:
     """
@@ -34,8 +34,6 @@ class Battle:
         地球のグループ
     _status_bar : StatusBar
         ステータスバースプライト
-    _info_bar : InfoBar
-        情報バースプライト
     _end_frames : int
         戦闘終了フレーム
     _result : Result
@@ -44,9 +42,11 @@ class Battle:
     
     _battle_seconds: int = 120
     _status_bar_h_ratio: float = 0.1
-    _info_bar_h_ratio: float = 0.05
+    _info_bar_h_ratio: float = 0
 
-    def __init__(self, screen: Surface, screen_size: tuple[int, int]):
+    def __init__(
+            self, screen: Surface, screen_size: tuple[int, int], fps: int
+    ):
         """
         コンストラクタ
 
@@ -56,26 +56,30 @@ class Battle:
             画面サーフェス
         screen_size : tuple[int, int]
             画面サイズ
+        fps : int
+            FPS
         """
         self._screen = screen
+        self._fps = fps
         self._setup_background(screen_size)
         self._clock = pygame.time.Clock()
 
-        screen_rect = self._screen.get_rect()
-        battle_area_rect = self._build_battle_area_rect(screen_rect)
+        self._screen_rect = self._screen.get_rect()
+        battle_area_rect = self._build_battle_area_rect()
 
-        self._enemies = Enemies(battle_area_rect)
-        self._earth = EarthGroup(battle_area_rect)
+        self._enemies = Enemies(battle_area_rect, fps)
+        self._earth = EarthGroup(battle_area_rect, fps)
         self._status_bar = StatusBar(
             self._screen,
-            screen_rect,
+            self._screen_rect,
             self._status_bar_h_ratio
         )
-        self._info_bar = InfoBar(screen_rect, self._info_bar_h_ratio)
 
-        self._end_frames = FPS * self._battle_seconds
+        self._end_frames = self._fps * self._battle_seconds
 
-        self._result = Result(screen_rect)
+        self._result = Result(self._screen_rect)
+
+        self._is_finish = False
 
     def _setup_background(self, size: tuple[int, int]) -> None:
         """
@@ -89,15 +93,9 @@ class Battle:
         self._background = pygame.Surface(size)
         self._background.fill(BLACK)
 
-    @classmethod
-    def _build_battle_area_rect(cls, screen_rect: Rect) -> Rect:
+    def _build_battle_area_rect(self) -> Rect:
         """
         戦闘領域レクトの作成
-
-        Parameters
-        ----------
-        screen_rect : Rect
-            画面レクト
 
         Returns
         -------
@@ -105,55 +103,153 @@ class Battle:
             戦闘領域レクト
         """
         left = 0
-        top = int(screen_rect.h * cls._status_bar_h_ratio)
+        top = int(self._screen_rect.h * self._status_bar_h_ratio)
 
-        h_ratio = 1 - (cls._status_bar_h_ratio + cls._info_bar_h_ratio)
-        h = int(screen_rect.h * h_ratio)
+        h_ratio = 1 - (self._status_bar_h_ratio + self._info_bar_h_ratio)
+        h = int(self._screen_rect.h * h_ratio)
 
-        rect = Rect(left, top, screen_rect.w, h)
+        rect = Rect(left, top, self._screen_rect.w, h)
 
         return rect
-
-    def run(self) -> None:
-        self._result.apply_difficulty_settings()
-
-        while True:
-            self._battle()
-
-    def _battle(self) -> None:
+    
+    def setup(self) -> list[Rect]:
         """
-        戦闘
+        初期化
 
         Returns
         -------
-        None
-            戦闘終了時に、return Noneでメソッドを終了する
+        list[Rect]
+            ダーティーレクト
         """
+        self._result.apply_difficulty_settings()
+
         self._setup()
 
-        while True:
-            self._frames += 1
+    # def run(self) -> None:
+    #     """
+    #     実行
+    #     """
+    #     self._result.apply_difficulty_settings()
 
-            if self._frames > self._end_frames:
-                self._finish()
+    #     while True:
+    #         self._battle()
 
-                return None
+    # def _battle(self) -> None:
+    #     """
+    #     戦闘
+
+    #     Returns
+    #     -------
+    #     None
+    #         戦闘終了時に、return Noneでメソッドを終了する
+    #     """
+    #     self._setup()
+
+    #     while True:
+    #         self._frames += 1
+
+    #         if self._frames > self._end_frames:
+    #             self._finish()
+
+    #             return None
             
-            self._enemies.add(self._frames, self._earth.pos)
-            dirty_rects = self._draw()
-            pygame.display.update(dirty_rects)
+    #         self._enemies.add(self._frames, self._earth.pos)
+    #         dirty_rects = self._draw()
+    #         pygame.display.update(dirty_rects)
 
-            if self._earth.health <= 0:
-                self._finish()
+    #         if self._earth.health <= 0:
+    #             self._finish()
 
-                return None
+    #             return None
 
-            key = Battle._accept_input()
-            self._update(key)
-            self._clear()
+    #         key = Battle._accept_input()
+    #         self._update(key)
+    #         self._clear()
 
-            self._clock.tick(FPS)
+    #         self._clock.tick(FPS)
 
+    def run(self, events: list[Event]) -> tuple[list[Rect] | None, bool]:
+        """
+        実行
+
+        Parameters
+        ----------
+        events : list[Event]
+            イベントリスト
+
+        Returns
+        -------
+        tuple[list[Rect] | None, bool]
+            ダーティーレクトと、ビュー変更するかどうかのbool
+            画面の更新が不要の場合は、ダーティーレクトがNoneとして返される
+        """
+        dirty_rects = None
+        should_change_view = False
+
+        if self._is_finish:
+            restart = self._result.accept_input(events)
+
+            if restart:
+                self._setup()
+
+                return [self._screen_rect], should_change_view
+
+            return dirty_rects, should_change_view
+
+        dirty_rects = self._battle(events)
+
+        return dirty_rects, should_change_view
+
+    def _battle(self, events: list[Event]) -> list[Rect]:
+        """
+        戦闘
+
+        Parameters
+        ----------
+        events : list[Event]
+            イベントリスト
+
+        Returns
+        -------
+        list[Rect]
+            ダーティーレクト
+        """
+        self._frames += 1
+        self._clear()
+
+        if self._check_finish():
+            dirty_rects = self._finish()
+
+            return dirty_rects
+        
+        self._enemies.add(self._frames, self._earth.pos)
+        dirty_rects = self._draw()
+
+        key = Battle._accept_input(events)
+        self._update(key)
+
+        self._clock.tick(self._fps)
+
+        return dirty_rects
+    
+    def _check_finish(self) -> bool:
+        """
+        戦闘終了かどうかの確認
+
+        Returns
+        -------
+        bool
+            戦闘終了ならTrue、戦闘継続ならFalse
+        """
+        is_time_over = self._frames > self._end_frames
+        is_earth_dead = self._earth.health <= 0
+        condition = is_time_over | is_earth_dead
+
+        if condition:
+            self._is_finish = True
+        
+        return condition
+    
     def _setup(self) -> None:
         """
         初期化
@@ -164,15 +260,19 @@ class Battle:
         self._enemies.reset()
         self._earth.reset(self._screen)
         self._status_bar.reset(self._screen, self._earth.health)
-        self._info_bar.setup(self._screen)
 
-        pygame.display.update()
+        self._is_finish = False
 
-    def _finish(self) -> None:
+    def _finish(self) -> list[Rect]:
         """
         終了処理
 
         ゲームの終了処理と、結果の表示
+
+        Returns
+        -------
+        list[Rect]
+            ダーティーレクト
         """
         self._update()
 
@@ -183,9 +283,7 @@ class Battle:
 
         dirty_rects = self._finish_draw()
 
-        pygame.display.update(dirty_rects)
-
-        self._result.accept_input()
+        return dirty_rects
                     
     def _finish_draw(self) -> list[Rect]:
         """
@@ -214,6 +312,7 @@ class Battle:
             ダーティーレクト
         """
         enemies_dirty_rects = self._enemies.draw(self._screen)
+
         earths_dirty_rects = self._earth.draw(self._screen)
 
         status_bar_dirty_rects = self._status_bar.draw_children(self._screen)
@@ -225,27 +324,25 @@ class Battle:
         return dirty_rects
 
     @staticmethod
-    def _accept_input() -> str | None:
+    def _accept_input(events: list[Event]) -> str | None:
         """
         入力受付
+
+        Parameters
+        ----------
+        events : list[Event]
+            イベントリスト
 
         Returns
         -------
         str | None
-            [Esc]以外は、入力があれば、その文字列を返す
+            入力があれば、その１文字を返す
         """
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                Utils.game_quit()
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                key: str = event.unicode
 
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    Utils.game_quit()
-
-                else:
-                    key: str = event.unicode
-
-                    return key
+                return key
                 
     def _update(self, key: str | None = None) -> None:
         """

@@ -12,7 +12,7 @@ class EarthGroup(SpriteAccessibleLayerdDirty):
     地球グループ
     """
 
-    def __init__(self, battle_area_rect: Rect):
+    def __init__(self, battle_area_rect: Rect, fps: int):
         """
         コンストラクタ
 
@@ -20,10 +20,13 @@ class EarthGroup(SpriteAccessibleLayerdDirty):
         ----------
         battle_area_rect : Rect
             戦闘領域レクト
+
+        fps: int
+            FPS
         """
         super().__init__()
 
-        Earth(self, battle_area_rect)
+        Earth(self, battle_area_rect, fps)
 
     @property
     def sprite(self) -> Earth:
@@ -117,7 +120,7 @@ class Earth(DamagedSprite):
     _max_health: int = 5
     _radius_ratio: float = 0.05
 
-    def __init__(self, group: EarthGroup, battle_area_rect: Rect):
+    def __init__(self, group: EarthGroup, battle_area_rect: Rect, fps: int):
         """
         コンストラクタ
 
@@ -127,8 +130,10 @@ class Earth(DamagedSprite):
             地球グループ
         battle_area_rect : Rect
             戦闘領域レクト
+        fps: int
+            FPS
         """
-        super().__init__(group)
+        super().__init__(group, fps)
 
         self.reset()
 

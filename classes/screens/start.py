@@ -1,8 +1,9 @@
 import pygame
 from pygame import Surface, Rect
+from pygame.event import Event
 
-from utils.utils import Utils
 from constants import FONT_PATH, WHITE
+
 
 class Start:
     """
@@ -18,44 +19,75 @@ class Start:
         screen : Surface
             画面サーフェス
         """
-        self._screen = screen
+        Start._setup(screen)
+        self.rect = screen.get_rect()
 
-        self._font_sticker = FontSticker(screen)
+    @staticmethod
+    def _setup(screen: Surface) -> None:
+        """
+        初期化
 
-    def run(self) -> None:
+        Parameters
+        ----------
+        screen : Surface
+            画面サーフェス
+        """
+        font_sticker = FontSticker(screen)
+
+        title = 'タイピングゲーム'
+        font_sticker.stick(title, 0.1, 0.4, screen)
+
+        info = '[Space]: 開始'
+        font_sticker.stick(info, 0.04, 0.8, screen)
+
+    def run(self, events: list[Event]) -> tuple[list[Rect] | None, bool]:
         """
         実行
 
+        Parameters
+        ----------
+        events : list[Event]
+            イベントリスト
+
         Returns
         -------
-        None
-            [Space]で、戦闘開始できるよう、return Noneでメソッドを終了する
+        tuple[list[Rect] | None, bool]
+            ダーティーレクトと、ビュー変更するかどうかのbool
+            画面の更新が不要の場合は、ダーティーレクトがNoneとして返される
         """
-        self._setup()
+        dirty_rects = None
+        should_change_view = self._check_events(events)
 
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    Utils.game_quit()
+        if self.rect:
+            dirty_rects = [self.rect]
+            self.rect = None
 
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        Utils.game_quit()
-
-                    elif event.key == pygame.K_SPACE:
-                        return None
-                    
-    def _setup(self) -> None:
+        return dirty_rects, should_change_view
+        
+    def _check_events(self, events: list[Event]) -> bool:
         """
-        初期化
+        イベントリストの確認
+        
+        ビューの変更が必要かどうかをboolで返すだけ
+
+        Parameters
+        ----------
+        events : list[Event]
+            イベントリスト
+
+        Returns
+        -------
+        bool
+            ビューを変更するかどうかのbool
         """
-        title = 'タイピングゲーム'
-        self._font_sticker.stick(title, 0.1, 0.4, self._screen)
+        should_change_view = False
+        
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    should_change_view = True
 
-        info = '[Space]: 開始'
-        self._font_sticker.stick(info, 0.04, 0.8, self._screen)
-
-        pygame.display.update()
+                    return should_change_view
                     
 
 class FontSticker:

@@ -9,7 +9,5 @@ D_BLUE = (0, 0, 150)
 GRAY = (128, 128, 128)
 ORANGE = (255, 165, 0)
 
-FPS = 60
-
 FONT_PATH = 'assets/data/ipaexg.ttf'
 DATA_PATH = 'assets/data/word_data.pkl'

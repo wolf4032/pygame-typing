@@ -16,11 +16,11 @@ class Meteor(DamagedSprite):
 
     Attributes
     ----------
-    _speed : float | int
-        移動速度
     _point : int
         撃破ポイント
 
+    _speed : int | float
+        移動速度
     _pos : Vector2
         中心座標
     _normal_image : Surface
@@ -33,10 +33,9 @@ class Meteor(DamagedSprite):
         レクト
     """
 
-    _speed: float | int = 0.75
     _point: int = 100
 
-    def __init__(self, args: MeteorArgs):
+    def __init__(self, args: MeteorArgs, fps: int):
         """
         コンストラクタ
 
@@ -44,9 +43,12 @@ class Meteor(DamagedSprite):
         ----------
         args : MeteorArgs
             専用引数
+        fps: int
+            FPS
         """
-        super().__init__(args.group)
+        super().__init__(args.group, fps)
 
+        self._speed = args.speed
         self._pos = args.pop_pos
         self._normal_image = args.normal_image
         self._damaged_image = args.damaged_image
@@ -145,11 +147,15 @@ class MeteorArgsProvider(ArgsProvider):
 
     Attributes
     ----------
+    _base_speed_ratio : float
+        移動速度割合
     _pop_areas : tuple[str, str, str, str]
         全湧き領域のリスト
     _radius_ratio : float
         半径の比率
 
+    _base_speed : int | float
+        基礎スピード
     _radius : int
         半径
     _normal_image : Surface
@@ -166,10 +172,11 @@ class MeteorArgsProvider(ArgsProvider):
         下の湧き領域のy座標
     """
 
+    _base_speed_ratio = 0.05
     _pop_areas = ('top', 'bottom', 'right', 'left')
     _radius_ratio = 0.05
 
-    def __init__(self, exist_rect: Rect):
+    def __init__(self, exist_rect: Rect, fps: int):
         """
         コンストラクタ
 
@@ -177,7 +184,12 @@ class MeteorArgsProvider(ArgsProvider):
         ----------
         exist_rect : Rect
             描画領域レクト
+        fps : int
+            FPS
         """
+        self._base_speed = round(
+            exist_rect.h * self._base_speed_ratio / fps, 2
+        )
         self._radius = int(exist_rect.h * self._radius_ratio)
         self._setup_images()
 
@@ -244,9 +256,11 @@ class MeteorArgsProvider(ArgsProvider):
             隕石の引数
         """
         pop_pos = self._build_pop_pos()
+        speed = self._base_speed
 
         args = MeteorArgs(
             meteors,
+            speed,
             self._normal_image,
             self._damaged_image,
             pop_pos
@@ -297,6 +311,8 @@ class MeteorArgs:
     ----------
     group : OverlappingReverse
         隕石のグループ
+    speed : int | float
+        移動速度
     normal_image : Surface
         通常時イメージ
     damaged_image : Surface
@@ -306,6 +322,7 @@ class MeteorArgs:
     """
     
     group: OverlappingReverse
+    speed: int | float
     normal_image: Surface
     damaged_image: Surface
     pop_pos: Vector2
