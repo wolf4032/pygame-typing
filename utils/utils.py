@@ -107,20 +107,19 @@ class Utils:
         int
             FPSの計測結果
         """
-        clock = pygame.time.Clock()
+        if sys.platform == 'emscripten':
+            clock = pygame.time.Clock()
 
-        for _ in range(11):
-            clock.tick()
+            for _ in range(11):
+                clock.tick()
 
-            await asyncio.sleep(0)
+                await asyncio.sleep(0)
 
-        fps = clock.get_fps()
-
-        if fps == 0:
-            fps = 60
+            fps = clock.get_fps()
+            fps = round(fps / 10) * 10
         
         else:
-            fps = round(fps / 10) * 10
+            fps = 60
 
         return fps
     

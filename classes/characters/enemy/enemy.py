@@ -1,5 +1,7 @@
 import networkx as nx
+
 from pygame import Vector2, Rect
+from pygame.mixer import Sound
 
 from classes.characters.enemy.meteor import MeteorArgs, Meteor
 from classes.characters.enemy.input_box.input_box import InputBoxArgs, InputBox
@@ -30,6 +32,8 @@ class Enemy:
             self,
             first_hira: str,
             graph: nx.DiGraph,
+            correct_key_sound: Sound,
+            wrong_key_sound: Sound,
             fps: int,
             meteor_args: MeteorArgs,
             input_box_args: InputBoxArgs,
@@ -47,6 +51,10 @@ class Enemy:
             単語のローマ字入力の全パターンを網羅した有向グラフ
             開始ノードと終了ノード以外は、ノードに対応したローマ字入力のタプルと、
             そのノードのひらがなの終了位置が、単語のどこであるかを示す整数を持つ
+        correct_key_sound : Sound
+            入力が正しかった場合の効果音
+        wrong_key_sound : Sound
+            入力が間違っていた場合の効果音
         fps : int
             FPS
         meteor_args : MeteorArgs
@@ -60,7 +68,9 @@ class Enemy:
         """
         self._first_hira = first_hira
 
-        self._key_processor = KeyProcessor(graph)
+        self._key_processor = KeyProcessor(
+            graph, correct_key_sound, wrong_key_sound
+        )
 
         self._meteor = Meteor(meteor_args, fps)
         assumed_keys = self._key_processor.assumed_keys
@@ -225,12 +235,21 @@ class KeyProcessor:
         'n'が入力された場合、次の入力として、'n'を正解とするかどうかのフラグ
     _accepting_keys : list[str]
         正解である１文字の入力のリスト
+    _correct_key_sound : Sound
+        入力が正しかった場合の効果音
+    _wrong_key_sound : Sound
+        入力が間違っていた場合の効果音
     """
     
     _start_node = ('start', 0)
     _end_node = ('end', -1)
 
-    def __init__(self, graph: nx.DiGraph):
+    def __init__(
+            self,
+            graph: nx.DiGraph,
+            correct_key_sound: Sound,
+            wrong_key_sound: Sound
+    ):
         """
         コンストラクタ
 
@@ -240,6 +259,10 @@ class KeyProcessor:
             単語のローマ字入力の全パターンを網羅した有向グラフ
             開始ノードと終了ノード以外は、ノードに対応したローマ字入力のタプルと、
             そのノードのひらがなの終了位置が、単語のどこであるかを示す整数を持つ
+        correct_key_sound : Sound
+            入力が正しかった場合の効果音
+        wrong_key_sound : Sound
+            入力が間違っていた場合の効果音
         """
         self._graph = graph
         self._keys_for_now_node = ''
@@ -250,6 +273,9 @@ class KeyProcessor:
 
         self._allow_n = False
         self._update_accepting_keys()
+
+        self._correct_key_sound = correct_key_sound
+        self._wrong_key_sound = wrong_key_sound
 
     @property
     def accepting_keys(self) -> list[str]:
@@ -416,9 +442,13 @@ class KeyProcessor:
             )
             assumed_keys = self._assumed_keys
 
+            self._correct_key_sound.play()
+
         else:
             confirmed_keys = None
             assumed_keys = None
+
+            self._wrong_key_sound.play()
 
         return confirmed_keys, assumed_keys
         

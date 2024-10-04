@@ -2,7 +2,9 @@ import random
 import pickle
 
 import networkx as nx
+import pygame
 from pygame import Surface, Rect, Vector2
+from pygame.mixer import Sound
 
 from utils.group import (
     OverlappingReverse,
@@ -46,6 +48,10 @@ class Enemies:
         頭文字の入力パターン数だけ、同一のバリューを持つペアが存在する
     _inputting_enemy : Enemy
         入力中の敵
+    _correct_key_sound : Sound
+        入力が正しかった場合の効果音
+    _wrong_key_sound : Sound
+        入力が間違っていた場合の効果音
     _correct_count : int
         正しい入力数
     _incorrect_count : int
@@ -80,6 +86,13 @@ class Enemies:
         self._first_keys_dic: dict[str, Enemy] = {}
         self._inputting_enemy: Enemy = None
 
+        self._correct_key_sound = pygame.mixer.Sound(
+            'assets/sounds/correct_key.ogg'
+        )
+        self._wrong_key_sound = pygame.mixer.Sound(
+            'assets/sounds/wrong_key.ogg'
+        )
+
         self.reset()
 
     def add(self, frames: int, earth_pos: Vector2) -> None:
@@ -99,6 +112,8 @@ class Enemies:
                 hira_tango,
                 self._waiting_meteors,
                 self._waiting_input_boxs,
+                self._correct_key_sound,
+                self._wrong_key_sound,
                 earth_pos
             )
 
@@ -249,6 +264,8 @@ class Enemies:
 
         else:
             self._incorrect_count += 1
+
+            self._wrong_key_sound.play()
 
     def _kill_enemy(self, enemy: Enemy) -> None:
         """
@@ -572,6 +589,8 @@ class EnemyMaker:
             hira_tango: str,
             meteors: OverlappingReverse,
             input_boxs: KeepWithinReverse,
+            correct_key_sound: Sound,
+            wrong_key_sound: Sound,
             earth_center: Vector2
     ) -> Enemy:
         """
@@ -585,6 +604,10 @@ class EnemyMaker:
             隕石のグループ
         input_boxs : KeepWithinReverse
             入力ボックスのグループ
+        correct_key_sound : Sound
+            入力が正しかった場合の効果音
+        wrong_key_sound : Sound
+            入力が間違っていた場合の効果音
         earth_center : Vector2
             地球の中心
 
@@ -604,6 +627,8 @@ class EnemyMaker:
         enemy = Enemy(
             first_hira,
             graph,
+            correct_key_sound,
+            wrong_key_sound,
             self._fps,
             meteor_args,
             input_box_args,

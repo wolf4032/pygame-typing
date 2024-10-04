@@ -115,6 +115,8 @@ class Earth(DamagedSprite):
         イメージ
     _pos : Vector2
         中心座標
+    _damage_sound : Sound
+        ダメージを受けたときの効果音
     """
     
     _max_health: int = 5
@@ -151,6 +153,10 @@ class Earth(DamagedSprite):
         self.rect.center = battle_area_rect.center
 
         self._pos = Vector2(self.rect.centerx, self.rect.centery)
+
+        self._damage_sound = pygame.mixer.Sound(
+            'assets/sounds/earth_damage.ogg'
+        )
 
     @property
     def pos(self) -> Vector2:
@@ -221,6 +227,8 @@ class Earth(DamagedSprite):
         """
         if damage:
             self._health -= damage
+
+            self._damage_sound.play()
 
             if self._health <= 0:
                 pass

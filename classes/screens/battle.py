@@ -125,49 +125,6 @@ class Battle:
 
         self._setup()
 
-    # def run(self) -> None:
-    #     """
-    #     実行
-    #     """
-    #     self._result.apply_difficulty_settings()
-
-    #     while True:
-    #         self._battle()
-
-    # def _battle(self) -> None:
-    #     """
-    #     戦闘
-
-    #     Returns
-    #     -------
-    #     None
-    #         戦闘終了時に、return Noneでメソッドを終了する
-    #     """
-    #     self._setup()
-
-    #     while True:
-    #         self._frames += 1
-
-    #         if self._frames > self._end_frames:
-    #             self._finish()
-
-    #             return None
-            
-    #         self._enemies.add(self._frames, self._earth.pos)
-    #         dirty_rects = self._draw()
-    #         pygame.display.update(dirty_rects)
-
-    #         if self._earth.health <= 0:
-    #             self._finish()
-
-    #             return None
-
-    #         key = Battle._accept_input()
-    #         self._update(key)
-    #         self._clear()
-
-    #         self._clock.tick(FPS)
-
     def run(self, events: list[Event]) -> tuple[list[Rect] | None, bool]:
         """
         実行
